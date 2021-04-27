@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-// camel-k: language=java open-api=openapi.yaml dependency=camel-openapi-java
+// camel-k: language=java open-api=openapi.json dependency=camel-openapi-java resource=openapi.json
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -25,27 +25,22 @@ import java.util.Optional;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 
-/**
- * @author Christoph Deppisch
- */
 public class GreetingService extends RouteBuilder {
-
-    private static final String KNATIVE = "Knative";
 
     private final Map<String, String> greetings = new HashMap<>();
 
     public GreetingService() {
-        greetings.put(Locale.GERMAN.getLanguage(), "Hallo " + KNATIVE + "!");
-        greetings.put(Locale.ENGLISH.getLanguage(), "Hello " + KNATIVE + "!");
-        greetings.put(Locale.FRENCH.getLanguage(), "Bonjour " + KNATIVE + "!");
-        greetings.put(Locale.ITALIAN.getLanguage(), "Ciao " + KNATIVE + "!");
-        greetings.put("esp", "Hola " + KNATIVE + "!");
+        greetings.put(Locale.GERMAN.getLanguage(), "Hallo %s!");
+        greetings.put(Locale.ENGLISH.getLanguage(), "Hello %s!");
+        greetings.put(Locale.FRENCH.getLanguage(), "Bonjour %s!");
+        greetings.put(Locale.ITALIAN.getLanguage(), "Ciao %s!");
+        greetings.put("esp", "Hola %s!");
     }
 
     @Override
     public void configure() throws Exception {
         // All endpoints starting from "direct:..." reference an operationId defined
-        // in the "openapi.yaml" file.
+        // in the "openapi.json" file.
 
         // Gets the openapi specification
         from("direct:openapi")
@@ -55,57 +50,31 @@ public class GreetingService extends RouteBuilder {
         from("direct:health")
                 .setBody().constant("{\"status\": \"UP\"}");
 
-        // List the available languages
-        from("direct:list")
-                .setBody().constant(greetings.keySet())
-                .marshal().json();
-
-        // Get greeting details
-        from("direct:greeting")
-                .process(exchange -> {
-                    String language = getLanguage(exchange);
-                    String message = greetings.get(language);
-
-                    if (message != null) {
-                        exchange.getIn().setBody(String.format("{\"language\": \"%s\", \"message\": \"%s\"}", language, message));
-                    } else {
-                        exchange.getIn().setHeader(Exchange.HTTP_RESPONSE_CODE, 404);
-                    }
-                });
-
-        // Create a new greeting in the in memory store
-        from("direct:create")
-                .convertBodyTo(String.class)
-                .process(exchange -> {
-                    this.greetings.put(getLanguage(exchange), exchange.getIn().getBody(String.class));
-                })
-                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(201))
-                .setBody().constant("");
-
-        // Delete an greeting from the in memory store
-        from("direct:delete")
-                .process(exchange -> {
-                    this.greetings.remove(getLanguage(exchange));
-                })
-                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(204))
-                .setBody().constant("");
-
         // Publish greeting event to Knative event stream
-        from("direct:push-event")
-                .process(exchange -> {
-                    String language = getLanguage(exchange);
-                    String message = Optional.ofNullable(greetings.get(language))
-                            .orElseThrow(() -> new IllegalArgumentException(String.format("Given language '%s' is not available", language)));
-                    exchange.getIn().setBody(String.format("{\"message\": \"%s\"}", message));
-                })
-                .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(201))
-                .to("kafka:greetings?brokers=demo-kafka-cluster-kafka-bootstrap:9092");
+        from("direct:greeting")
+            .setHeader(Exchange.CONTENT_TYPE, constant("text/plain"))
+            .process(exchange -> {
+                String user = getUser(exchange);
+                String message = greetings.getOrDefault(getLanguage(exchange), "No greeting available!");
+                exchange.getIn().setBody(String.format(message, user));
+            })
+        .setHeader("CE-Type", constant("message"))
+        .setHeader("CE-Source", constant("https://github.com/citrusframework/yaks"))
+        .setHeader("CE-Subject", constant("messages"))
+        .to("knative:channel/messages")
+        .setHeader(Exchange.HTTP_RESPONSE_CODE, constant(201));
     }
 
     private String getLanguage(Exchange exchange) {
         return Optional.ofNullable(exchange.getIn().getHeader("language"))
                 .map(Object::toString)
                 .orElseThrow(() -> new IllegalArgumentException("Missing language as request header"));
+    }
+
+    private String getUser(Exchange exchange) {
+        return Optional.ofNullable(exchange.getIn().getHeader("username"))
+                .map(Object::toString)
+                .orElseThrow(() -> new IllegalArgumentException("Missing user as request header"));
     }
 
 }

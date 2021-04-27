@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://greeting-service-yaks-demo.svc.cluster.local"
+      "url": "http://greeting-service-yaks-demo.apps.cdeppisc.rhmw-integrations.net"
     }
   ],
   "paths": {
@@ -47,29 +47,28 @@
         "summary": "Health status of the application"
       }
     },
-    "/": {
-      "get": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "description": "List of languages"
-          }
-        },
-        "operationId": "list",
-        "summary": "List the available languages"
-      }
-    },
-    "/event/{language}": {
+    "/greeting/{language}": {
       "post": {
+        "parameters": [
+          {
+            "name": "language",
+            "in": "path",
+            "description": "Language to use",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "description": "Username to use",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "201": {
             "description": "The greeting event has been created"
@@ -78,84 +77,8 @@
             "description": "The greeting language has not been found"
           }
         },
-        "operationId": "push-event",
-        "summary": "Publish a new greeting event in given language"
-      }
-    },
-    "/{language}": {
-      "get": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Greeting"
-                }
-              }
-            },
-            "description": "Greeting details"
-          }
-        },
         "operationId": "greeting",
-        "summary": "Greeting details for given language"
-      },
-      "put": {
-        "requestBody": {
-          "content": {
-            "test/plain": {
-              "schema": {
-                "type": "string"
-              }
-            }
-          },
-          "description": "The greeting text content",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "The greeting has been created"
-          }
-        },
-        "operationId": "create",
-        "summary": "Save a new greeting"
-      },
-      "delete": {
-        "responses": {
-          "204": {
-            "description": "The greeting has been deleted"
-          }
-        },
-        "operationId": "delete",
-        "summary": "Delete a greeting"
-      },
-      "parameters": [
-        {
-          "name": "language",
-          "description": "Language of the greeting",
-          "schema": {
-            "type": "string"
-          },
-          "in": "path",
-          "required": true
-        }
-      ]
-    }
-  },
-  "components": {
-    "schemas": {
-      "Greeting": {
-        "type": "object",
-        "properties": {
-          "language": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "xml": {
-          "name": "Greeting"
-        }
+        "summary": "Publish a new greeting event in given language"
       }
     }
   }

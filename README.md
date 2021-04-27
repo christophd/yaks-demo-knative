@@ -16,14 +16,15 @@ it is assumed that you have the [Camel K operator](https://operatorhub.io/operat
 and [Strimzi Kafka operator](https://operatorhub.io/operator/strimzi-kafka-operator) installed and ready 
 for usage on your namespace.
 
-## Setup Kafka cluster
+## Setup Knative eventing
 
 Once you are connected to your OpenShift namespace create a new Kafka cluster and two topics with:
 
 ```shell script
-$ oc apply -f infra/kafka-cluster.yaml                
-$ oc apply -f infra/greetings-topic.yaml                
-$ oc apply -f infra/words-topic.yaml                
+$ oc apply -f infra/broker.yaml                
+$ oc apply -f infra/messages-channel.yaml                
+$ oc apply -f infra/messages-trigger.yaml                
+$ oc apply -f infra/words-channel.yaml                
 ```
 
 Depending on your cluster domain and the namespace that you have installed the Kafka cluster to the connection URL will differ
@@ -43,8 +44,8 @@ via download from the [Camel K releases on gihtub](https://github.com/apache/cam
 You can run the OpenAPI greeting service and the splitter EIP as follows:
 
 ```shell script
+$ kamel run camel-k/message-splitter.groovy
 $ kamel run camel-k/GreetingService.java --resource camel-k/openapi.json
-$ kamel run camel-k/greeting-splitter.groovy
 ```                             
 
 This runs the greeting service that exposes the Http REST API and the splitter that listens on the
@@ -65,9 +66,8 @@ We are finally setup and can verify the services now by running the feature file
 [test](test) directory:
 
 ```shell script
-$ yaks test test/greeting-service.feature
-$ yaks test test/greeting-openapi.feature
+$ yaks test test/greeting-channel.feature
+$ yaks test test/greeting-http.feature
 $ yaks test test/greeting-outline.feature
-$ yaks test test/greeting-event.feature
-$ yaks test test/greeting-split-event.feature
+$ yaks test test/greeting-openapi.feature
 ```

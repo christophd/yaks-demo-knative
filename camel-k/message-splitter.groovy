@@ -1,6 +1,7 @@
+// camel-k: language=groovy
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
+ * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
@@ -15,12 +16,11 @@
  * limitations under the License.
  */
 
-from('kafka:greetings?brokers=demo-kafka-cluster-kafka-bootstrap:9092')
-    .setBody()
-        .jsonpath("\$.message")
-    .split().tokenize(" ")
-    .removeHeaders("*")
-    .setHeader("CE-Type", constant("greeting-words"))
-    .setHeader("CE-Source", constant("https://github.com/citrusframework/yaks"))
-    .setHeader("CE-Subject", constant("greeting-splitter"))
-    .to('knative:event/greeting-words')
+from('knative:channel/messages')
+  .log('received message ${body}')
+  .split().tokenize(" ")
+  .log('sending ${body}')
+  .setHeader("CE-Type", constant("word"))
+  .setHeader("CE-Source", constant("https://github.com/citrusframework/yaks"))
+  .setHeader("CE-Subject", constant("words"))
+  .to('knative:channel/words')

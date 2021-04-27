@@ -1,28 +1,24 @@
 @require(com.consol.citrus:citrus-validation-hamcrest:@citrus.version@)
-Feature: Greeting
+Feature: Greeting event
 
   Background:
-    Given URL: http://greeting-service-yaks-demo.svc.cluster.local
-    Given Knative broker URL: http://default-broker.yaks-demo.svc.cluster.local
+    Given URL: http://greeting-service-yaks-demo.apps.cdeppisc.rhmw-integrations.net
     Given Knative event consumer timeout is 20000 ms
-    Given Knative broker default is running
-    Given create Knative event consumer service greeting-words-service
-    Given create Knative trigger greeting-words-service-trigger on service greeting-words-service with filter on attributes
-      | type   | greeting-words |
-      | source | https://github.com/citrusframework/yaks |
+    Given create Knative event consumer service http-words-service
+    Given subscribe service http-words-service to Knative channel words
 
-  Scenario: Split greeting event
-    When send POST /event/de
+  Scenario: Process greeting event
+    When send POST /greeting/de?username=Christoph
     Then receive HTTP 201 CREATED
-    Then expect Knative event data: @assertThat(anyOf(is(Hallo), is(Knative!)))@
+    Then expect Knative event data: Hallo
     And verify Knative event
-      | type            | greeting-words |
+      | type            | word |
       | source          | https://github.com/citrusframework/yaks |
-      | subject         | greeting-splitter |
-      | id              | @startsWith('ID-greeting-splitter-')@ |
-    Then expect Knative event data: @assertThat(anyOf(is(Hallo), is(Knative!)))@
+      | subject         | words |
+      | id              | @ignore@ |
+    Then expect Knative event data: Christoph!
     And verify Knative event
-      | type            | greeting-words |
+      | type            | word |
       | source          | https://github.com/citrusframework/yaks |
-      | subject         | greeting-splitter |
-      | id              | @startsWith('ID-greeting-splitter-')@ |
+      | subject         | words |
+      | id              | @ignore@ |

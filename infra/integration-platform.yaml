@@ -15,15 +15,9 @@
 # limitations under the License.
 # ---------------------------------------------------------------------------
 
-config:
-  runtime:
-    env:
-      - name: YAKS_KNATIVE_BROKER_HOST
-        value: broker-ingress.knative-eventing.svc.cluster.local
-    settings:
-      loggers:
-        - name: Logger.Message_IN
-          level: DEBUG
-        - name: Logger.Message_OUT
-          level: DEBUG
-
+apiVersion: camel.apache.org/v1
+kind: IntegrationPlatform
+metadata:
+  name: camel-k
+  labels:
+    app: camel-k
